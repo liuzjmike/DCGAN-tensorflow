@@ -2,8 +2,10 @@ from __future__ import division
 import math
 import tensorflow as tf
 
-from utils import *
+from ops import *
 
+def conv_out_size_same(size, stride):
+    return int(math.ceil(size / stride))
 
 class Generator(object):
     def __init__(
@@ -13,7 +15,7 @@ class Generator(object):
             output_width=64,
             z_dim=100,
             filter_dim=64,
-            channel=3,
+            channel=3):
         """
         Args:
           batch_size: The size of batch. Should be specified before training.
@@ -42,12 +44,12 @@ class Generator(object):
         # project `z` and reshape
         z_ = linear(z, self.filter_dim * 8 * s_h16 * s_w16, 'g_h0_lin')
 
-        h0 = tf.reshape(self.z_, [-1, s_h16, s_w16, self.filter_dim * 8])
-        h0 = tf.nn.relu(bn0(self.h0, train=train))
+        h0 = tf.reshape(z_, [-1, s_h16, s_w16, self.filter_dim * 8])
+        h0 = tf.nn.relu(bn0(h0, train=train))
 
         h1 = deconv2d(h0, [self.batch_size, s_h8, s_w8,
                            self.filter_dim * 4], name='g_h1')
-        h1 = tf.nn.relu(bn1(self.h1, train=train))
+        h1 = tf.nn.relu(bn1(h1, train=train))
 
         h2 = deconv2d(h1, [self.batch_size, s_h4, s_w4,
                            self.filter_dim * 2], name='g_h2')
@@ -61,6 +63,3 @@ class Generator(object):
                            self.channel], name='g_h4')
 
         return tf.nn.tanh(h4)
-
-    def conv_out_size_same(size, stride):
-        return int(math.ceil(size / stride))

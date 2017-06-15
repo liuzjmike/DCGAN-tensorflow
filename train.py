@@ -1,10 +1,8 @@
-import os
 import numpy as np
-
-from model import DCGAN
-from utils import pp, visualize, to_json, show_all_variables
-
 import tensorflow as tf
+
+from utils import pp, visualize, to_json, show_all_variables
+from trainer import Trainer
 
 flags = tf.app.flags
 flags.DEFINE_integer("epoch", 25, "Epoch to train [25]")
@@ -32,13 +30,18 @@ flags.DEFINE_integer(
     None,
     "The size of the output images to produce. If None, same value as output_height [None]")
 flags.DEFINE_string(
-    "dataset",
-    "celebA",
-    "The name of dataset [celebA, mnist, lsun]")
+    "name",
+    None,
+    "Name of the model [None]")
+flags.DEFINE_string(
+    "train_set",
+    None,
+    "The directory that contains the images used for training. Should locate" +
+    "/data. If None, same value as name [None]")
 flags.DEFINE_string(
     "input_fname_pattern",
     "*.jpg",
-    "Glob pattern of filename of input images [*]")
+    "Glob pattern of filename of input images [*.jpg]")
 flags.DEFINE_string(
     "checkpoint_dir",
     "checkpoint",
@@ -48,17 +51,9 @@ flags.DEFINE_string(
     "samples",
     "Directory name to save the image samples [samples]")
 flags.DEFINE_boolean(
-    "train",
-    False,
-    "True for training, False for testing [False]")
-flags.DEFINE_boolean(
     "crop",
     False,
-    "True for training, False for testing [False]")
-flags.DEFINE_boolean(
-    "visualize",
-    False,
-    "True for visualizing, False for nothing [False]")
+    "Center-crop input images [False]")
 FLAGS = flags.FLAGS
 
 
@@ -69,55 +64,28 @@ def main(_):
         FLAGS.input_width = FLAGS.input_height
     if FLAGS.output_width is None:
         FLAGS.output_width = FLAGS.output_height
-
-    if not os.path.exists(FLAGS.checkpoint_dir):
-        os.makedirs(FLAGS.checkpoint_dir)
-    if not os.path.exists(FLAGS.sample_dir):
-        os.makedirs(FLAGS.sample_dir)
+    if FLAGS.train_set is None:
+        FLAGS.train_set = FLAGS.name
 
     #gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.333)
     run_config = tf.ConfigProto()
     run_config.gpu_options.allow_growth = True
 
     with tf.Session(config=run_config) as sess:
-        if FLAGS.dataset == 'mnist':
-            dcgan = DCGAN(
-                sess,
-                input_width=FLAGS.input_width,
-                input_height=FLAGS.input_height,
-                output_width=FLAGS.output_width,
-                output_height=FLAGS.output_height,
-                batch_size=FLAGS.batch_size,
-                sample_num=FLAGS.batch_size,
-                y_dim=10,
-                dataset_name=FLAGS.dataset,
-                input_fname_pattern=FLAGS.input_fname_pattern,
-                crop=FLAGS.crop,
-                checkpoint_dir=FLAGS.checkpoint_dir,
-                sample_dir=FLAGS.sample_dir)
-        else:
-            dcgan = DCGAN(
-                sess,
-                input_width=FLAGS.input_width,
-                input_height=FLAGS.input_height,
-                output_width=FLAGS.output_width,
-                output_height=FLAGS.output_height,
-                batch_size=FLAGS.batch_size,
-                sample_num=FLAGS.batch_size,
-                dataset_name=FLAGS.dataset,
-                input_fname_pattern=FLAGS.input_fname_pattern,
-                crop=FLAGS.crop,
-                checkpoint_dir=FLAGS.checkpoint_dir,
-                sample_dir=FLAGS.sample_dir)
+        trainer = Trainer(
+            sess,
+            FLAGS.name,
+            batch_size=FLAGS.batch_size,
+            output_width=FLAGS.output_width,
+            output_height=FLAGS.output_height,
+            input_dir=FLAGS.train_set,
+            input_fname_pattern=FLAGS.input_fname_pattern,
+            checkpoint_dir=FLAGS.checkpoint_dir,
+            sample_dir=FLAGS.sample_dir)
 
         show_all_variables()
 
-        if FLAGS.train:
-            dcgan.train(FLAGS)
-        else:
-            if not dcgan.load(FLAGS.checkpoint_dir)[0]:
-                raise Exception("[!] Train a model first, then run test mode")
-
+        trainer.train(FLAGS)
         # to_json("./web/js/layers.js", [dcgan.h0_w, dcgan.h0_b, dcgan.g_bn0],
         #                 [dcgan.h1_w, dcgan.h1_b, dcgan.g_bn1],
         #                 [dcgan.h2_w, dcgan.h2_b, dcgan.g_bn2],
@@ -125,8 +93,7 @@ def main(_):
         #                 [dcgan.h4_w, dcgan.h4_b, None])
 
         # Below is codes for visualization
-        OPTION = 0
-        visualize(sess, dcgan, FLAGS, OPTION)
+        # visualize(sess, dcgan, FLAGS, 0)
 
 
 if __name__ == '__main__':

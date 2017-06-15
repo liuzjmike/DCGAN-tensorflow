@@ -17,6 +17,9 @@ import tensorflow.contrib.slim as slim
 
 pp = pprint.PrettyPrinter()
 
+def make_dir(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
 
 def get_stddev(x, k_h, k_w): return 1 / \
     math.sqrt(k_w * k_h * x.get_shape()[-1])
@@ -205,6 +208,12 @@ def make_gif(images, fname, duration=2, true_image=False):
     clip = mpy.VideoClip(make_frame, duration=duration)
     clip.write_gif(fname, fps=len(images) / duration)
 
+def format_input(raw, grey=False):
+    if grey:
+        return np.array(raw).astype(
+            np.float32)[:, :, :, None]
+    else:
+        return np.array(raw).astype(np.float32)
 
 def visualize(sess, dcgan, config, option):
     image_frame_dim = int(math.ceil(config.batch_size**.5))
