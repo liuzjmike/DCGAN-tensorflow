@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-from utils import pp, visualize, to_json, show_all_variables
+from utils import pp, to_json, show_all_variables
 from trainer import Trainer
 
 flags = tf.app.flags
@@ -31,8 +31,8 @@ flags.DEFINE_integer(
     "The size of the output images to produce. If None, same value as output_height [None]")
 flags.DEFINE_string(
     "name",
-    None,
-    "Name of the model [None]")
+    "model",
+    "Name of the model [model]")
 flags.DEFINE_string(
     "train_set",
     None,
@@ -56,7 +56,6 @@ flags.DEFINE_boolean(
     "Center-crop input images [False]")
 FLAGS = flags.FLAGS
 
-
 def main(_):
     pp.pprint(flags.FLAGS.__flags)
 
@@ -79,6 +78,7 @@ def main(_):
             output_width=FLAGS.output_width,
             output_height=FLAGS.output_height,
             input_dir=FLAGS.train_set,
+            train_size=FLAGS.train_size,
             input_fname_pattern=FLAGS.input_fname_pattern,
             checkpoint_dir=FLAGS.checkpoint_dir,
             sample_dir=FLAGS.sample_dir)
@@ -93,8 +93,6 @@ def main(_):
         #                 [dcgan.h4_w, dcgan.h4_b, None])
 
         # Below is codes for visualization
-        # visualize(sess, dcgan, FLAGS, 0)
-
 
 if __name__ == '__main__':
     tf.app.run()

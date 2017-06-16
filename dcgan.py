@@ -7,7 +7,6 @@ from utils import make_dir
 from generator import Generator
 from discriminator import Discriminator
 
-
 class DCGAN(object):
     def __init__(
             self,

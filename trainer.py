@@ -6,6 +6,7 @@ import numpy as np
 from six.moves import xrange
 
 from utils import make_dir, imread, get_image, format_input
+from meta_saver import save_meta
 from ops import *
 from dcgan import DCGAN
 
@@ -21,7 +22,8 @@ class Trainer(object):
             gf_dim=64,
             df_dim=64,
             input_dir=None,
-            input_fname_pattern='*',
+            train_size=np.inf,
+            input_fname_pattern='*.jpg',
             checkpoint_dir="checkpoint",
             sample_dir="sample"):
         self.sess = sess
@@ -34,6 +36,8 @@ class Trainer(object):
                     dpath[0],
                     input_fname_pattern))]
         np.random.shuffle(self.data)
+        if train_size < len(self.data):
+            self.data = self.data[0:train_size]
 
         # check if image is a non-grey image by checking channel number
         img = imread(self.data[0])
@@ -46,6 +50,7 @@ class Trainer(object):
                            z_dim, gf_dim, df_dim, channel)
         self.checkpoint_dir = os.path.join(checkpoint_dir, self.dcgan.model_id)
         make_dir(self.checkpoint_dir)
+        save_meta(self.dcgan, self.checkpoint_dir)
 
         self.saver = tf.train.Saver()
 
@@ -96,9 +101,11 @@ class Trainer(object):
         sample_dir = os.path.join(config.sample_dir, self.dcgan.model_id)
         make_dir(sample_dir)
 
+        batch_idxs = len(self.data) // self.dcgan.generator.batch_size
+
         for epoch in xrange(config.epoch):
-            batch_idxs = min(len(self.data), config.train_size) // config.batch_size
-            for idx in xrange(0, batch_idxs):
+            np.random.shuffle(self.data)
+            for idx in xrange(batch_idxs):
                 batch_z, batch_inputs = self.get_batch(
                     idx * self.dcgan.generator.batch_size, config)
                 # Update D network
