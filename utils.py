@@ -8,6 +8,7 @@ import json
 import random
 import pprint
 import scipy.misc
+import heapq
 import numpy as np
 from time import gmtime, strftime
 from six.moves import xrange
@@ -16,6 +17,16 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 
 pp = pprint.PrettyPrinter()
+
+def heap_add_all(heap, items, max_size=0):
+    if(max_size > 0):
+        while(len(heap) > max_size):
+            heapq.heappop(heap)
+    for item in items:
+        if(max_size > 0 and len(heap) >= max_size and item[0] > heap[0][0] > 0):
+           heapq.heappushpop(heap, item)
+        else:
+            heapq.heappush(heap, item)
 
 def make_dir(path):
     if not os.path.exists(path):

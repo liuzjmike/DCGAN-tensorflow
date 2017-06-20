@@ -24,10 +24,9 @@ class Trainer(object):
             input_dir=None,
             train_size=np.inf,
             input_fname_pattern='*.jpg',
-            checkpoint_dir="checkpoint",
-            sample_dir="sample"):
+            checkpoint_dir="checkpoint"):
         self.sess = sess
-        self.data = [
+        data = [
             fpath for dpath in os.walk(
                 os.path.join(
                     "./data",
@@ -35,16 +34,20 @@ class Trainer(object):
                 os.path.join(
                     dpath[0],
                     input_fname_pattern))]
-        np.random.shuffle(self.data)
-        if train_size < len(self.data):
-            self.data = self.data[0:train_size]
+        np.random.shuffle(data)
+        if train_size > len(data):
+            train_size = int(len(data) * 0.9)
+        self.train_data = data[0:train_size]
+        self.test_data = data[train_size:]
 
         # check if image is a non-grey image by checking channel number
-        img = imread(self.data[0])
+        img = imread(data[0])
         if len(img.shape) >= 3:
             channel = img.shape[-1]
         else:
             channel = 1
+        self.input_width = img.shape[0]
+        self.input_height = img.shape[1]
         self.grey = (channel == 1)
         self.dcgan = DCGAN(name, batch_size, output_height, output_width,
                            z_dim, gf_dim, df_dim, channel)
@@ -71,7 +74,7 @@ class Trainer(object):
             [self.z_sum, self.d__sum, self.G_sum, self.d_loss_fake_sum, self.g_loss_sum])
         self.d_sum = merge_summary(
             [self.z_sum, self.d_sum, self.d_loss_real_sum, self.d_loss_sum])
-        self.writer = SummaryWriter("./logs", self.sess.graph)
+        # self.writer = SummaryWriter("./logs", self.sess.graph)
 
     def train(self, config):
         d_optim = tf.train.AdamOptimizer(
@@ -101,25 +104,20 @@ class Trainer(object):
         sample_dir = os.path.join(config.sample_dir, self.dcgan.model_id)
         make_dir(sample_dir)
 
-        batch_idxs = len(self.data) // self.dcgan.generator.batch_size
+        batch_idxs = len(self.train_data) // self.dcgan.generator.batch_size
 
-        for epoch in xrange(config.epoch):
-            np.random.shuffle(self.data)
+        for epoch in xrange(counter, config.epoch):
+            np.random.shuffle(self.train_data)
             for idx in xrange(batch_idxs):
-                batch_z, batch_inputs = self.get_batch(
-                    idx * self.dcgan.generator.batch_size, config)
+                batch_z, batch_inputs = self.get_batch(idx, config)
                 # Update D network
-                _, summary_str = self.sess.run([d_optim, self.d_sum], feed_dict={
-                                               self.dcgan.inputs: batch_inputs,
-                                               self.dcgan.z: batch_z})
-                self.writer.add_summary(summary_str, counter)
+                self.sess.run(d_optim, feed_dict={self.dcgan.inputs:
+                                                  batch_inputs, self.dcgan.z: batch_z})
 
                 # Update G network twice to make sure that d_loss does not go
                 # to zero
                 for i in range(2):
-                    _, summary_str = self.sess.run(
-                        [g_optim, self.g_sum], feed_dict={self.dcgan.z: batch_z})
-                    self.writer.add_summary(summary_str, counter)
+                    self.sess.run(g_optim, feed_dict={self.dcgan.z: batch_z})
 
                 errD_fake = self.dcgan.d_loss_fake.eval(
                     {self.dcgan.z: batch_z})
@@ -127,56 +125,61 @@ class Trainer(object):
                     {self.dcgan.inputs: batch_inputs})
                 errG = self.dcgan.g_loss.eval({self.dcgan.z: batch_z})
 
-                counter += 1
                 print(
                     "Epoch: [%2d] [%4d/%4d] time: %4.4f, d_loss: %.8f, g_loss: %.8f" %
                     (epoch, idx, batch_idxs, time.time() - start_time, errD_fake + errD_real, errG))
 
-                if np.mod(counter, 100) == 0:
-                    try:
-                        samples, d_loss, g_loss = self.sess.run(
-                            [self.dcgan.sampler, self.dcgan.d_loss, self.dcgan.g_loss],
-                            feed_dict={
-                                self.dcgan.z: sample_z,
-                                self.dcgan.inputs: sample_inputs,
-                            },
-                        )
-                        manifold_h = int(
-                            np.ceil(np.sqrt(samples.shape[0])))
-                        manifold_w = int(
-                            np.floor(np.sqrt(samples.shape[0])))
-                        save_images(samples,
-                                    [manifold_h,
-                                     manifold_w],
-                                    './{}/train_{:02d}_{:04d}.png'.format(sample_dir,
-                                                                          epoch,
-                                                                          idx))
-                        print(
-                            "[Sample] d_loss: %.8f, g_loss: %.8f" %
-                            (d_loss, g_loss))
-                    except BaseException:
-                        print("one pic error!...")
+            try:
+                samples, d_loss, g_loss = self.sess.run(
+                    [self.dcgan.sampler, self.dcgan.d_loss, self.dcgan.g_loss],
+                    feed_dict={
+                        self.dcgan.z: sample_z,
+                        self.dcgan.inputs: sample_inputs,
+                    },
+                )
+                manifold_h = int(
+                    np.ceil(np.sqrt(samples.shape[0])))
+                manifold_w = int(
+                    np.floor(np.sqrt(samples.shape[0])))
+                save_images(samples,
+                            [manifold_h,
+                             manifold_w],
+                            './{}/train_{:02d}_{:04d}.png'.format(sample_dir,
+                                                                  epoch,
+                                                                  idx))
+                print(
+                    "[Sample] d_loss: %.8f, g_loss: %.8f" %
+                    (d_loss, g_loss))
+            except BaseException:
+                print("one pic error!...")
 
-                if np.mod(counter, 500) == 1:
-                    self.save(counter)
+            self.eval(epoch, config)
 
-    def get_batch(self, start, config):
-        return self.get_z(), self.get_inputs(start, config)
+    def eval(self, epoch, config):
+        if np.mod(epoch, 10) == 0:
+            self.save(epoch)
+
+    def get_batch(self, batch, config):
+        return self.get_z(), self.get_inputs(batch, config)
 
     def get_z(self):
         return np.random.uniform(-1, 1, size=(self.dcgan.generator.batch_size,
                                               self.dcgan.generator.z_dim))
 
-    def get_inputs(self, start, config):
+    def get_inputs(self, batch, config):
+        return self.get_images(self.train_data, batch, config)
+
+    def get_images(self, data, batch, config):
+        batch_size = self.dcgan.generator.batch_size
         images = [self.read_image(
-            f, config) for f in self.data[start:start + self.dcgan.generator.batch_size]]
+            f, config) for f in data[batch * batch_size:(batch + 1) * batch_size]]
         return format_input(images, self.grey)
 
     def read_image(self, fname, config):
         return get_image(
             fname,
-            input_height=config.input_height,
-            input_width=config.input_width,
+            input_height=self.input_height,
+            input_width=self.input_width,
             resize_height=self.dcgan.generator.output_height,
             resize_width=self.dcgan.generator.output_width,
             crop=config.crop,
@@ -204,7 +207,7 @@ class Trainer(object):
                         "(\d+)(?!.*\d)",
                         ckpt_name)).group(0))
             print(" [*] Success to read {}".format(ckpt_name))
-            return True, counter
+            return True, counter + 1
         else:
             print(" [*] Failed to find a checkpoint")
             return False, 0
