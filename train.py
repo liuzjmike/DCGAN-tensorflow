@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import tensorflow as tf
 
@@ -6,13 +7,13 @@ from trainer import Trainer
 from membership_trainer import MembershipTrainer
 
 flags = tf.app.flags
-flags.DEFINE_integer("epoch", 25, "Epoch to train [25]")
+flags.DEFINE_integer("epoch", 20, "Epoch to train [20]")
 flags.DEFINE_float(
     "learning_rate",
     0.0002,
     "Learning rate of for adam [0.0002]")
 flags.DEFINE_float("beta1", 0.5, "Momentum term of adam [0.5]")
-flags.DEFINE_integer("train_size", np.inf, "The size of train images [np.inf]")
+flags.DEFINE_integer("train_size", None, "The size of train images [None]")
 flags.DEFINE_integer("batch_size", 64, "The size of batch images [64]")
 flags.DEFINE_integer(
     "output_height",
@@ -30,6 +31,11 @@ flags.DEFINE_string(
     "train_set",
     None,
     "The directory that contains the images used for training. Should locate" +
+    "/data. If None, same value as name [None]")
+flags.DEFINE_string(
+    "test_set",
+    None,
+    "The directory that contains the images used for testing. Should locate" +
     "/data. If None, same value as name [None]")
 flags.DEFINE_string(
     "input_fname_pattern",
@@ -55,7 +61,9 @@ def main(_):
     if FLAGS.output_width is None:
         FLAGS.output_width = FLAGS.output_height
     if FLAGS.train_set is None:
-        FLAGS.train_set = FLAGS.name
+        FLAGS.train_set = os.path.join(FLAGS.name, 'train')
+    if FLAGS.test_set is None:
+        FLAGS.test_set = os.path.join(FLAGS.name, 'test')
 
     #gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.333)
     run_config = tf.ConfigProto()
@@ -65,10 +73,11 @@ def main(_):
         trainer = MembershipTrainer(
             sess,
             FLAGS.name,
+            FLAGS.train_set,
+            FLAGS.test_set,
             batch_size=FLAGS.batch_size,
             output_width=FLAGS.output_width,
             output_height=FLAGS.output_height,
-            input_dir=FLAGS.train_set,
             train_size=FLAGS.train_size,
             input_fname_pattern=FLAGS.input_fname_pattern,
             checkpoint_dir=FLAGS.checkpoint_dir)

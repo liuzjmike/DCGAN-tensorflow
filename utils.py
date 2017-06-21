@@ -3,6 +3,7 @@ Some codes from https://github.com/Newmu/dcgan_code
 """
 from __future__ import division
 import os
+from glob import glob
 import math
 import json
 import random
@@ -31,6 +32,10 @@ def heap_add_all(heap, items, max_size=0):
 def make_dir(path):
     if not os.path.exists(path):
         os.makedirs(path)
+
+def get_files(root, pattern):
+    return [fpath for dpath in os.walk(root) for fpath in
+            glob(os.path.join(dpath[0], pattern))]
 
 def get_stddev(x, k_h, k_w): return 1 / \
     math.sqrt(k_w * k_h * x.get_shape()[-1])

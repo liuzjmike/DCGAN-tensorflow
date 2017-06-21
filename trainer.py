@@ -5,43 +5,38 @@ import tensorflow as tf
 import numpy as np
 from six.moves import xrange
 
-from utils import make_dir, imread, get_image, format_input
+from utils import make_dir, get_files, imread, get_image, format_input
 from meta_saver import save_meta
 from ops import *
 from dcgan import DCGAN
+
+def get_data(base_dir, pattern):
+    return get_files(os.path.join('./data', base_dir), pattern)
 
 class Trainer(object):
     def __init__(
             self,
             sess,
             name,
+            train_set,
+            test_set,
             batch_size=64,
             output_height=64,
             output_width=64,
             z_dim=100,
             gf_dim=64,
             df_dim=64,
-            input_dir=None,
-            train_size=np.inf,
+            train_size=None,
             input_fname_pattern='*.jpg',
             checkpoint_dir="checkpoint"):
         self.sess = sess
-        data = [
-            fpath for dpath in os.walk(
-                os.path.join(
-                    "./data",
-                    input_dir)) for fpath in glob(
-                os.path.join(
-                    dpath[0],
-                    input_fname_pattern))]
-        np.random.shuffle(data)
-        if train_size > len(data):
-            train_size = int(len(data) * 0.9)
-        self.train_data = data[0:train_size]
-        self.test_data = data[train_size:]
+        self.train_data = get_data(train_set, input_fname_pattern)
+        np.random.shuffle(self.train_data)
+        if train_size != None:
+            self.train_data = self.train_data[:train_size]
 
         # check if image is a non-grey image by checking channel number
-        img = imread(data[0])
+        img = imread(self.train_data[0])
         if len(img.shape) >= 3:
             channel = img.shape[-1]
         else:
@@ -156,7 +151,7 @@ class Trainer(object):
             self.eval(epoch, config)
 
     def eval(self, epoch, config):
-        if np.mod(epoch, 10) == 0:
+        if np.mod(epoch, 10) == 9:
             self.save(epoch)
 
     def get_batch(self, batch, config):
