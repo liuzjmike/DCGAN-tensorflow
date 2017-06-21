@@ -12,6 +12,7 @@ flags.DEFINE_string(
     "model_id",
     None,
     "ID of the model in the form of name_{batch size}_{output height}_{output width} [None]")
+flags.DEFINE_integer("batch_size", 64, "The size of a batch [64]")
 flags.DEFINE_integer(
     "batch",
     1,
@@ -19,11 +20,11 @@ flags.DEFINE_integer(
 flags.DEFINE_string(
     "checkpoint_dir",
     "checkpoint",
-    "Directory name to save the checkpoints [checkpoint]")
+    "The directory to load the checkpoints [checkpoint]")
 flags.DEFINE_string(
     "sample_dir",
     "samples",
-    "Directory name to save the image samples [samples]")
+    "The directory to save the image samples [samples]")
 FLAGS = flags.FLAGS
 
 def main(_):
@@ -36,8 +37,8 @@ def main(_):
     run_config.gpu_options.allow_growth = True
 
     with tf.Session(config=run_config) as sess:
+        sampler = Sampler(sess, FLAGS.model_id, FLAGS.batch_size, FLAGS.checkpoint_dir)
         for b in xrange(FLAGS.batch):
-            sampler = Sampler(sess, FLAGS.model_id, FLAGS.checkpoint_dir)
             samples = sampler.sample(option=0)
             for idx, sample in enumerate(samples):
                 scipy.misc.imsave(get_path('sample_%d_%d.jpg' % (b, idx)),

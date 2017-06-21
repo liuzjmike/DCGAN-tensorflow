@@ -3,7 +3,6 @@ import json
 
 def save_meta(dcgan, checkpoint_dir):
     data = {
-        'batch_size':dcgan.generator.batch_size,
         'output_height':dcgan.generator.output_height,
         'output_width':dcgan.generator.output_width,
         'z_dim':dcgan.generator.z_dim,

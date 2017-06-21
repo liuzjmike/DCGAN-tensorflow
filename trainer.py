@@ -101,7 +101,7 @@ class Trainer(object):
 
         batch_idxs = len(self.train_data) // self.dcgan.generator.batch_size
 
-        for epoch in xrange(counter, config.epoch):
+        for epoch in xrange(counter, counter + config.epoch):
             np.random.shuffle(self.train_data)
             for idx in xrange(batch_idxs):
                 batch_z, batch_inputs = self.get_batch(idx, config)
@@ -122,7 +122,7 @@ class Trainer(object):
 
                 print(
                     "Epoch: [%2d] [%4d/%4d] time: %4.4f, d_loss: %.8f, g_loss: %.8f" %
-                    (epoch, idx, batch_idxs, time.time() - start_time, errD_fake + errD_real, errG))
+                    (epoch + 1, idxi + 1, batch_idxs, time.time() - start_time, errD_fake + errD_real, errG))
 
             try:
                 samples, d_loss, g_loss = self.sess.run(
@@ -139,9 +139,7 @@ class Trainer(object):
                 save_images(samples,
                             [manifold_h,
                              manifold_w],
-                            './{}/train_{:02d}_{:04d}.png'.format(sample_dir,
-                                                                  epoch,
-                                                                  idx))
+                            './{}/train_{:02d}.png'.format(sample_dir, epoch))
                 print(
                     "[Sample] d_loss: %.8f, g_loss: %.8f" %
                     (d_loss, g_loss))

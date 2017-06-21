@@ -30,9 +30,8 @@ class DCGAN(object):
                                    z_dim, gf_dim, channel)
         self.discriminator = Discriminator(batch_size, output_height,
                                            output_width, df_dim)
-        self.model_id = "{}_{}_{}_{}".format(
+        self.model_id = "{}_{}_{}".format(
             name,
-            batch_size,
             output_height,
             output_width)
 

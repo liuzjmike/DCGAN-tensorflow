@@ -24,7 +24,7 @@ def heap_add_all(heap, items, max_size=0):
         while(len(heap) > max_size):
             heapq.heappop(heap)
     for item in items:
-        if(max_size > 0 and len(heap) >= max_size and item[0] > heap[0][0] > 0):
+        if(max_size > 0 and len(heap) >= max_size and cmp(item, heap[0]) > 0):
            heapq.heappushpop(heap, item)
         else:
             heapq.heappush(heap, item)

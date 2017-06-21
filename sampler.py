@@ -11,10 +11,11 @@ class Sampler(object):
             self,
             sess,
             model_id,
+            batch_size,
             checkpoint_dir='checkpoint'):
         checkpoint_dir = os.path.join(checkpoint_dir, model_id)
         meta = load_meta(checkpoint_dir)
-        generator = Generator(meta['batch_size'], meta['output_height'],
+        generator = Generator(batch_size, meta['output_height'],
                                    meta['output_width'], meta['z_dim'],
                                    meta['gf_dim'], meta['channel'])
         self.sess = sess

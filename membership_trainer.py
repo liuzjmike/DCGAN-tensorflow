@@ -45,3 +45,5 @@ class MembershipTrainer(Trainer):
                              max_size=len(self.train_data))
             accuracy = sum(label for score, label in guesses) / len(self.train_data)
             print('[*] Attack accuracy: %.2f' % accuracy)
+            with open(self.attack_log, 'a') as f:
+                f.write('Epoch [%d] Attack accuracy %.2f\n' % (epoch + 1, accuracy))

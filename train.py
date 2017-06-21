@@ -44,11 +44,11 @@ flags.DEFINE_string(
 flags.DEFINE_string(
     "checkpoint_dir",
     "checkpoint",
-    "Directory name to save the checkpoints [checkpoint]")
+    "The directory to save the checkpoints [checkpoint]")
 flags.DEFINE_string(
     "sample_dir",
     "samples",
-    "Directory name to save the image samples [samples]")
+    "The directory to save the image samples [samples]")
 flags.DEFINE_boolean(
     "crop",
     False,
