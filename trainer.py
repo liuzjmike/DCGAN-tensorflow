@@ -122,7 +122,7 @@ class Trainer(object):
 
                 print(
                     "Epoch: [%2d] [%4d/%4d] time: %4.4f, d_loss: %.8f, g_loss: %.8f" %
-                    (epoch + 1, idxi + 1, batch_idxs, time.time() - start_time, errD_fake + errD_real, errG))
+                    (epoch + 1, idx + 1, batch_idxs, time.time() - start_time, errD_fake + errD_real, errG))
 
             try:
                 samples, d_loss, g_loss = self.sess.run(

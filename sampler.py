@@ -19,7 +19,6 @@ class Sampler(object):
                                    meta['output_width'], meta['z_dim'],
                                    meta['gf_dim'], meta['channel'])
         self.sess = sess
-        self.model_id = model_id
         self.z = tf.placeholder(
             tf.float32, [generator.batch_size, generator.z_dim], name='z')
         with tf.variable_scope("generator"):
